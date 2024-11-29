@@ -4,7 +4,7 @@
 This application is designed to scrape real estate ads from the SS.lv website, manage scraping loops through a user-friendly GUI, and store ad data in a database. The app dynamically manages multiple scraping tasks, allowing users to start, stop, and remove loops via the GUI.
 
 ---
-
+![Alt Text](sslvpic.JPG)
 ## **Features**
 
 1. **Scrape Ads Dynamically**  
