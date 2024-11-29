@@ -3,8 +3,10 @@
 
 This application is designed to scrape real estate ads from the SS.lv website, manage scraping loops through a user-friendly GUI, and store ad data in a database. The app dynamically manages multiple scraping tasks, allowing users to start, stop, and remove loops via the GUI.
 
+This script optimizes the scraping process by maintaining a loop-based approach, ensuring that ads are scraped only when necessary. By focusing on the most recent ads for each configured location and sublocation, it minimizes redundant requests to the target website, reducing server load and improving efficiency. Additionally, it immediately processes new or updated ads while skipping unchanged ones, further streamlining the workflow and conserving resources.
+
 ---
-![Alt Text](sslvpic.JPG)
+
 ## **Features**
 
 1. **Scrape Ads Dynamically**  
@@ -31,7 +33,7 @@ This application is designed to scrape real estate ads from the SS.lv website, m
 
 - **Backend:** Node.js, Express.js  
 - **Frontend:** EJS (Embedded JavaScript templates), HTML, CSS, JavaScript  
-- **Database:** SQLite  
+- **Database:** MySQL or MariaDB  
 - **Web Scraping:** Cheerio, Axios  
 
 ---
@@ -50,29 +52,84 @@ This application is designed to scrape real estate ads from the SS.lv website, m
    ```
 
 3. Set up the database:
-   - Create an SQLite database file (e.g., `database.db`) with the required schema:
+   - Create a MySQL/MariaDB database and user.
+   - Grant the user appropriate privileges on the database.
+   - Update the database connection configuration in `dbConnection.js` to match your setup:
+     ```javascript
+     const pool = mysql.createPool({
+       host: 'your-host',          // Database host (e.g., localhost)
+       user: 'your-username',      // Database username
+       password: 'your-password',  // Database password
+       database: 'your-database',  // Database name
+       waitForConnections: true,
+       connectionLimit: 10,
+       queueLimit: 0,
+     });
+     ```
+
+   Example SQL commands to set up the database:
+   ```sql
+   CREATE DATABASE sslv;
+
+   CREATE USER 'sslv'@'localhost' IDENTIFIED BY 'your-password';
+
+   GRANT ALL PRIVILEGES ON sslv.* TO 'sslv'@'localhost';
+
+   FLUSH PRIVILEGES;
+   ```
+
+4. Initialize the database schema:
+   - Run the following SQL commands to create the required tables:
      ```sql
      CREATE TABLE ads (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       ad_key TEXT UNIQUE NOT NULL,
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       ad_key VARCHAR(255) UNIQUE NOT NULL,
        link TEXT NOT NULL,
        posting_date DATE NOT NULL,
-       location TEXT NOT NULL,
-       sublocation TEXT NOT NULL,
-       renewals INTEGER DEFAULT 0,
-       last_seen DATETIME DEFAULT CURRENT_TIMESTAMP
+       location VARCHAR(255) NOT NULL,
+       sublocation VARCHAR(255) NOT NULL,
+       renewals INT DEFAULT 0,
+       last_seen DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
      );
      ```
 
-4. Start the application:
+5. Start the application:
    ```bash
    node app.js
    ```
 
-5. Open the app in your browser:
+6. Open the app in your browser:
    ```
    http://localhost:3000
    ```
+
+---
+
+## **Database Configuration**
+
+The application uses a connection pool (`mysql2/promise`) for efficient interaction with the MySQL/MariaDB database. Ensure the following parameters in `dbConnection.js` are correctly configured:
+
+- **`host`:** The database host (e.g., `localhost` for local development).  
+- **`user`:** The database username with sufficient privileges.  
+- **`password`:** The password for the database user.  
+- **`database`:** The name of the database to store scraped ads.  
+
+Example configuration in `dbConnection.js`:
+```javascript
+const mysql = require('mysql2/promise');
+
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'sslv',
+  password: 'your-password',
+  database: 'sslv',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+module.exports = pool;
+```
 
 ---
 
@@ -81,7 +138,7 @@ This application is designed to scrape real estate ads from the SS.lv website, m
 ### **1. Loop Management GUI**
 - **Add a Loop:**  
   Use the dropdowns and interval input to create a new scraping loop.
-  
+
 - **Start/Stop a Loop:**  
   Control scraping loops with the "Start" and "Stop" buttons.
 
@@ -95,43 +152,6 @@ This application is designed to scrape real estate ads from the SS.lv website, m
   - **New Ads:** Inserted into the database.
   - **Renewed Ads:** Posting date is updated.
   - **Matched Ads:** `last_seen` is updated.
-
----
-
-## **Code Structure**
-
-### **1. Backend**
-
-#### `app.js`  
-- Initializes the server and routes.  
-- Handles global loop storage and middleware.
-
-#### `routes/loopRouter.js`  
-- Manages loop-related endpoints (`/add`, `/start`, `/stop`, `/remove`, `/`).
-
-#### `controllers/loopController.js`  
-- Handles loop operations (adding, starting, stopping, removing).  
-- Integrates with `adsController` for ad scraping.
-
-#### `controllers/adsController.js`  
-- Contains scraping logic for fetching and processing ads.  
-- Splits logic into reusable helpers for direct invocation and API endpoints.
-
-#### `models/adsModel.js`  
-- Database interaction layer for managing ads.  
-- Functions include fetching recent ads, inserting new ads, updating renewals, and refreshing `last_seen`.
-
----
-
-### **2. Frontend**
-
-#### `views/loops.ejs`  
-- Provides a GUI for managing loops.  
-- Dynamically displays the current list of loops and their statuses.  
-- Supports adding, starting, stopping, and removing loops.
-
-#### `public/`  
-- Contains static files (e.g., CSS, JavaScript).
 
 ---
 
@@ -169,29 +189,10 @@ This application is designed to scrape real estate ads from the SS.lv website, m
 
 ---
 
-## **Contributing**
-
-1. Fork the repository.  
-2. Create a new branch:
-   ```bash
-   git checkout -b feature-name
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m "Add feature-name"
-   ```
-4. Push to your branch:
-   ```bash
-   git push origin feature-name
-   ```
-5. Submit a pull request.
-
----
-
 ## **License**
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ---
 
-Feel free to use this template and adjust it to match your specific project details or any additional features you add! Let me know if you'd like further help.
+### Let me know if you'd like additional modifications or clarifications!
