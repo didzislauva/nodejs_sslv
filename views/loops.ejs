@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scraping Loop Controller</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 10px; text-align: left; }
+    button { padding: 5px 10px; margin: 2px; }
+    form label { margin-right: 10px; }
+    form input, form select, form button { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Scraping Loop Controller</h1>
+
+  <!-- Form to create a new loop -->
+  <form id="createLoopForm">
+    <label>
+      Location:
+      <select id="location">
+        <option value="riga">Riga</option>
+        <option value="ventspils">Ventspils</option>
+      </select>
+    </label>
+    <label>
+      Sublocation:
+      <select id="sublocation">
+        <option value="centre">Centre</option>
+        <option value="yugla">Jugla</option>
+      </select>
+    </label>
+    <label>
+      Action:
+      <select id="action">
+        <option value="sell">Sell</option>
+        <option value="rent">Rent</option>
+      </select>
+    </label>
+    <label>
+      Interval (hours):
+      <input type="number" id="interval" min="1" required>
+    </label>
+    <button type="button" onclick="addLoop()">Add</button>
+  </form>
+
+  <!-- Table to display created loops -->
+  <h2>Active Loops</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Location</th>
+        <th>Sublocation</th>
+        <th>Action</th>
+        <th>Interval (hours)</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="loopsTable">
+      <% loops.forEach(loop => { %>
+        <tr>
+          <td><%= loop.location %></td>
+          <td><%= loop.sublocation %></td>
+          <td><%= loop.action %></td>
+          <td><%= loop.interval %></td>
+          <td id="status-<%= loop.id %>"><%= loop.status %></td>
+          <td>
+            <button onclick="startLoop(<%= loop.id %>)">Start</button>
+            <button onclick="stopLoop(<%= loop.id %>)">Stop</button>
+			  <button onclick="removeLoop(<%= loop.id %>)">Remove</button>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <script>
+    // Function to add a loop
+    async function addLoop() {
+      const location = document.getElementById('location').value;
+      const sublocation = document.getElementById('sublocation').value;
+      const action = document.getElementById('action').value;
+      const interval = document.getElementById('interval').value;
+
+      const response = await fetch('/loops/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location, sublocation, action, interval }),
+      });
+
+      if (response.ok) {
+        const newLoop = await response.json();
+        const table = document.getElementById('loopsTable');
+
+        // Add the new loop to the table dynamically
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${newLoop.location}</td>
+          <td>${newLoop.sublocation}</td>
+          <td>${newLoop.action}</td>
+          <td>${newLoop.interval}</td>
+          <td id="status-${newLoop.id}">Stopped</td>
+          <td>
+            <button onclick="startLoop(${newLoop.id})">Start</button>
+            <button onclick="stopLoop(${newLoop.id})">Stop</button>
+			<button onclick="removeLoop(${newLoop.id})">Remove</button>
+          </td>
+        `;
+        table.appendChild(row);
+      } else {
+        alert('Failed to add loop.');
+      }
+    }
+	
+	 async function fetchAndRenderLoops() {
+    const response = await fetch('/loops'); // Fetch the updated list of loops
+    if (response.ok) {
+      const loops = await response.json();
+      const table = document.getElementById('loopsTable');
+      table.innerHTML = ''; // Clear the current table rows
+
+      // Render the updated loops
+      loops.forEach(loop => {
+        const row = document.createElement('tr');
+        row.id = `loop-row-${loop.id}`;
+        row.innerHTML = `
+          <td>${loop.location}</td>
+          <td>${loop.sublocation}</td>
+          <td>${loop.action}</td>
+          <td>${loop.interval}</td>
+          <td id="status-${loop.id}">${loop.status}</td>
+          <td>
+            <button onclick="startLoop(${loop.id})">Start</button>
+            <button onclick="stopLoop(${loop.id})">Stop</button>
+            <button onclick="removeLoop(${loop.id})">Remove</button>
+
+          </td>
+        `;
+        table.appendChild(row);
+      });
+    } else {
+      alert('Failed to fetch loops.');
+    }
+  }
+
+   // Function to start a loop
+  async function startLoop(loopId) {
+    const response = await fetch('/loops/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: loopId }),
+    });
+
+    if (response.ok) {
+      document.getElementById(`status-${loopId}`).innerText = 'Running';
+    } else {
+      alert('Failed to start loop.');
+    }
+  }
+	
+	  // Function to remove a loop
+		async function removeLoop(loopId) {
+		  const response = await fetch('/loops/remove', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: loopId }),
+		  });
+
+		  const result = await response.json();
+		  console.log('Remove Loop Response:', result);
+
+		  if (response.ok) {
+			await fetchAndRenderLoops(); // Fetch and re-render the updated table
+		  } else {
+			alert(result.message || 'Failed to remove loop.');
+		  }
+		}
+
+     // Function to stop a loop
+  async function stopLoop(loopId) {
+    const response = await fetch('/loops/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: loopId }),
+    });
+
+    if (response.ok) {
+      document.getElementById(`status-${loopId}`).innerText = 'Stopped';
+    } else {
+      alert('Failed to stop loop.');
+    }
+  }
+  </script>
+</body>
+</html>
