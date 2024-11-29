@@ -194,5 +194,3 @@ module.exports = pool;
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ---
-
-### Let me know if you'd like additional modifications or clarifications!
