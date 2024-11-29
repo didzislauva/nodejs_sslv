@@ -1,6 +1,3 @@
-Here’s a comprehensive `README.md` for your app to use on GitHub:
-
----
 
 # **Real Estate Ad Scraping and Loop Controller**
 
